@@ -234,6 +234,19 @@
       font-size: 0.85rem;
       padding: 6px 10px;
     }
+    input[type="datetime-local"] {
+      flex: 1;
+      background: #0d1b2a;
+      border: 2px solid #1b4965;
+      border-radius: 6px;
+      color: #4ecca3;
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 6px 10px;
+      outline: none;
+      color-scheme: dark;
+    }
+    .clock-simulated { color: #f7b731 !important; }
   </style>
 </head>
 <body>
@@ -276,6 +289,18 @@
       <input type="number" id="cfgBalance" min="0" value="2000">
     </div>
     <button onclick="applyAdmin()" style="width:100%">APPLY</button>
+
+    <div style="margin-top:16px;border-top:1px solid #1b4965;padding-top:14px">
+      <div class="section-title" style="color:#f7b731">Clock</div>
+      <div class="admin-row">
+        <label>Set simulated time</label>
+        <input type="datetime-local" id="cfgClock">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="applyClock()" style="flex:1;font-size:0.8rem;padding:8px">SET CLOCK</button>
+        <button onclick="resetClock()" style="flex:1;font-size:0.8rem;padding:8px;border-color:#e94560;color:#e94560">RESET TO REAL</button>
+      </div>
+    </div>
   </div>
 
   <!-- Always-visible: account balance -->
@@ -289,6 +314,18 @@
 
   <!-- Debug panel: limits, daily tracking, ATM cash -->
   <div class="debug-panel" id="debugPanel">
+    <div class="screen">
+      <div class="section-title">Clock</div>
+      <div class="screen-row">
+        <span class="screen-label">Current time</span>
+        <span class="screen-value" id="dispClock">—</span>
+      </div>
+      <div class="screen-row">
+        <span class="screen-label">Mode</span>
+        <span class="screen-value" id="dispClockMode">Real time</span>
+      </div>
+    </div>
+
     <div class="screen">
       <div class="section-title">Account — limits</div>
       <div class="screen-row">
@@ -369,12 +406,17 @@ const state = {
     withdrawnToday: 0,
     bills: { 100: 5, 50: 8, 20: 15, 10: 20 }
   },
+  clockOffset: 0,
   resetDate: todayStr(),
   transactions: []
 };
 
+function now() {
+  return new Date(Date.now() + state.clockOffset);
+}
+
 function todayStr() {
-  return new Date().toDateString();
+  return now().toDateString();
 }
 
 function checkDayReset() {
@@ -481,7 +523,7 @@ function withdraw() {
 }
 
 function logTransaction(amount, ok, detail) {
-  const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const time = now().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   state.transactions.unshift({ amount, ok, detail, time });
 }
 
@@ -515,6 +557,7 @@ function render() {
   }
 
   renderHistory();
+  renderClock();
 
   // Sync admin inputs
   document.getElementById('cfgAtmLimit').value = atm.dailyLimit;
@@ -524,6 +567,21 @@ function render() {
   document.getElementById('refill50').value = atm.bills[50];
   document.getElementById('refill20').value = atm.bills[20];
   document.getElementById('refill10').value = atm.bills[10];
+}
+
+function renderClock() {
+  const t = now();
+  const simulated = state.clockOffset !== 0;
+  const clockEl = document.getElementById('dispClock');
+  const modeEl = document.getElementById('dispClockMode');
+  if (!clockEl) return;
+  clockEl.textContent = t.toLocaleString('en-GB', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  clockEl.className = 'screen-value' + (simulated ? ' clock-simulated' : '');
+  modeEl.textContent = simulated ? 'Simulated' : 'Real time';
+  modeEl.className = 'screen-value' + (simulated ? ' clock-simulated' : '');
 }
 
 function setText(id, val) {
@@ -574,6 +632,26 @@ function toggleAdmin() {
   btn.classList.toggle('active', panel.classList.contains('open'));
 }
 
+function applyClock() {
+  const val = document.getElementById('cfgClock').value;
+  if (!val) return;
+  const target = new Date(val).getTime();
+  state.clockOffset = target - Date.now();
+  checkDayReset();
+  renderClock();
+}
+
+function resetClock() {
+  state.clockOffset = 0;
+  document.getElementById('cfgClock').value = toDatetimeLocal(now());
+  renderClock();
+}
+
+function toDatetimeLocal(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function applyAdmin() {
   state.atm.bills[100] = Math.max(0, parseInt(document.getElementById('refill100').value) || 0);
   state.atm.bills[50]  = Math.max(0, parseInt(document.getElementById('refill50').value)  || 0);
@@ -586,10 +664,16 @@ function applyAdmin() {
   render();
 }
 
-// Allow Enter key in amount field
 document.getElementById('amountInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') withdraw();
 });
+
+document.getElementById('cfgClock').value = toDatetimeLocal(now());
+
+setInterval(() => {
+  checkDayReset();
+  renderClock();
+}, 1000);
 
 render();
 </script>
