@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATM Simulator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .atm-shell {
+      background: #16213e;
+      border: 4px solid #0f3460;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 0 40px rgba(15, 52, 96, 0.8);
+    }
+
+    .atm-header {
+      text-align: center;
+      color: #e94560;
+      font-size: 1.4rem;
+      font-weight: bold;
+      letter-spacing: 4px;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+
+    .screen {
+      background: #0d1b2a;
+      border: 2px solid #1b4965;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      color: #4ecca3;
+    }
+
+    .screen-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #1b4965;
+      font-size: 0.9rem;
+    }
+    .screen-row:last-child { border-bottom: none; }
+
+    .screen-label { color: #8892b0; }
+    .screen-value { color: #4ecca3; font-weight: bold; }
+    .screen-value.warn { color: #f7b731; }
+    .screen-value.danger { color: #e94560; }
+
+    .section-title {
+      color: #8892b0;
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .bills-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .bill-slot {
+      background: #0d1b2a;
+      border: 2px solid #1b4965;
+      border-radius: 6px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+
+    .bill-denom {
+      color: #4ecca3;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .bill-count {
+      color: #8892b0;
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+    .bill-count.empty { color: #e94560; }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    input[type="number"] {
+      flex: 1;
+      background: #0d1b2a;
+      border: 2px solid #1b4965;
+      border-radius: 6px;
+      color: #4ecca3;
+      font-family: inherit;
+      font-size: 1.2rem;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="number"]:focus { border-color: #4ecca3; }
+    input[type="number"]::placeholder { color: #1b4965; }
+
+    button {
+      background: #0f3460;
+      border: 2px solid #4ecca3;
+      border-radius: 6px;
+      color: #4ecca3;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+    button:hover { background: #4ecca3; color: #0d1b2a; }
+    button:active { transform: scale(0.97); }
+
+    .message-box {
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .message-box.success {
+      background: #0d2b1e;
+      border: 2px solid #4ecca3;
+      color: #4ecca3;
+      display: block;
+    }
+    .message-box.error {
+      background: #2b0d0d;
+      border: 2px solid #e94560;
+      color: #e94560;
+      display: block;
+    }
+
+    .dispensed-bills {
+      margin-top: 8px;
+    }
+    .dispensed-bills span {
+      display: inline-block;
+      background: #1b4965;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin: 2px;
+      font-size: 0.85rem;
+    }
+
+    .history {
+      background: #0d1b2a;
+      border: 2px solid #1b4965;
+      border-radius: 8px;
+      padding: 14px 16px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid #1b4965;
+      font-size: 0.8rem;
+      color: #8892b0;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-item .hi-amount { color: #4ecca3; font-weight: bold; }
+    .history-item .hi-fail { color: #e94560; }
+    .history-item .hi-time { color: #4a5568; font-size: 0.75rem; }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .toolbar button {
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-color: #1b4965;
+      color: #4a5568;
+    }
+    .toolbar button:hover { background: #1b4965; color: #8892b0; }
+    .toolbar button.active { border-color: #f7b731; color: #f7b731; background: #1a1400; }
+
+    .debug-panel {
+      display: none;
+    }
+    .debug-panel.open { display: block; }
+
+    .admin-panel {
+      background: #0d1b2a;
+      border: 2px solid #f7b731;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .admin-panel.open { display: block; }
+    .admin-panel .section-title { color: #f7b731; }
+
+    .admin-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: #8892b0;
+    }
+    .admin-row label { min-width: 200px; }
+    .admin-row input[type="number"] {
+      width: 80px;
+      flex: none;
+      font-size: 0.85rem;
+      padding: 6px 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="atm-shell">
+  <div class="atm-header">&#9632; ATM &#9632;</div>
+
+  <div class="toolbar">
+    <button id="btnDebug" onclick="toggleDebug()">DEBUG</button>
+    <button id="btnAdmin" onclick="toggleAdmin()">ADMIN</button>
+  </div>
+
+  <div class="admin-panel" id="adminPanel">
+    <div class="section-title">Admin — Refill &amp; Limits</div>
+    <div class="admin-row">
+      <label>Bills &euro;100</label>
+      <input type="number" id="refill100" min="0" value="5">
+    </div>
+    <div class="admin-row">
+      <label>Bills &euro;50</label>
+      <input type="number" id="refill50" min="0" value="8">
+    </div>
+    <div class="admin-row">
+      <label>Bills &euro;20</label>
+      <input type="number" id="refill20" min="0" value="15">
+    </div>
+    <div class="admin-row">
+      <label>Bills &euro;10</label>
+      <input type="number" id="refill10" min="0" value="20">
+    </div>
+    <div class="admin-row">
+      <label>ATM daily limit (&euro;)</label>
+      <input type="number" id="cfgAtmLimit" min="0" value="300">
+    </div>
+    <div class="admin-row">
+      <label>Account daily limit (&euro;)</label>
+      <input type="number" id="cfgAccLimit" min="0" value="500">
+    </div>
+    <div class="admin-row">
+      <label>Account balance (&euro;)</label>
+      <input type="number" id="cfgBalance" min="0" value="2000">
+    </div>
+    <button onclick="applyAdmin()" style="width:100%">APPLY</button>
+  </div>
+
+  <!-- Always-visible: account balance -->
+  <div class="screen">
+    <div class="section-title">Account</div>
+    <div class="screen-row">
+      <span class="screen-label">Balance</span>
+      <span class="screen-value" id="dispBalance">&euro;2000</span>
+    </div>
+  </div>
+
+  <!-- Debug panel: limits, daily tracking, ATM cash -->
+  <div class="debug-panel" id="debugPanel">
+    <div class="screen">
+      <div class="section-title">Account — limits</div>
+      <div class="screen-row">
+        <span class="screen-label">Account limit (daily)</span>
+        <span class="screen-value" id="dispAccLimit">&euro;500</span>
+      </div>
+      <div class="screen-row">
+        <span class="screen-label">Account withdrawn today</span>
+        <span class="screen-value" id="dispAccWithdrawn">&euro;0</span>
+      </div>
+      <div class="screen-row">
+        <span class="screen-label">Account remaining today</span>
+        <span class="screen-value" id="dispAccRemaining">&euro;500</span>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="section-title">This ATM</div>
+      <div class="screen-row">
+        <span class="screen-label">ATM limit (daily)</span>
+        <span class="screen-value" id="dispAtmLimit">&euro;300</span>
+      </div>
+      <div class="screen-row">
+        <span class="screen-label">ATM withdrawn today</span>
+        <span class="screen-value" id="dispAtmWithdrawn">&euro;0</span>
+      </div>
+      <div class="screen-row">
+        <span class="screen-label">ATM remaining today</span>
+        <span class="screen-value" id="dispAtmRemaining">&euro;300</span>
+      </div>
+    </div>
+
+    <div class="section-title">Cash in ATM</div>
+    <div class="bills-grid">
+      <div class="bill-slot">
+        <div class="bill-denom">&euro;100</div>
+        <div class="bill-count" id="count100">×5</div>
+      </div>
+      <div class="bill-slot">
+        <div class="bill-denom">&euro;50</div>
+        <div class="bill-count" id="count50">×8</div>
+      </div>
+      <div class="bill-slot">
+        <div class="bill-denom">&euro;20</div>
+        <div class="bill-count" id="count20">×15</div>
+      </div>
+      <div class="bill-slot">
+        <div class="bill-denom">&euro;10</div>
+        <div class="bill-count" id="count10">×20</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-row">
+    <input type="number" id="amountInput" placeholder="Enter amount" min="10" step="10">
+    <button onclick="withdraw()">WITHDRAW</button>
+  </div>
+
+  <div class="message-box" id="messageBox"></div>
+
+  <div class="section-title">Transactions today</div>
+  <div class="history" id="history">
+    <div class="history-item" style="color:#4a5568; font-style:italic; justify-content:center">No transactions yet</div>
+  </div>
+</div>
+
+<script>
+const DENOMS = [100, 50, 20, 10];
+
+const state = {
+  account: {
+    balance: 2000,
+    dailyLimit: 500,
+    withdrawnToday: 0
+  },
+  atm: {
+    dailyLimit: 300,
+    withdrawnToday: 0,
+    bills: { 100: 5, 50: 8, 20: 15, 10: 20 }
+  },
+  resetDate: todayStr(),
+  transactions: []
+};
+
+function todayStr() {
+  return new Date().toDateString();
+}
+
+function checkDayReset() {
+  if (state.resetDate !== todayStr()) {
+    state.resetDate = todayStr();
+    state.account.withdrawnToday = 0;
+    state.atm.withdrawnToday = 0;
+  }
+}
+
+// Greedy bill dispensing: largest first, respecting available counts
+function dispenseBills(amount, bills) {
+  const result = {};
+  let remaining = amount;
+  const draft = { ...bills };
+
+  for (const d of DENOMS) {
+    if (remaining <= 0) break;
+    const use = Math.min(Math.floor(remaining / d), draft[d]);
+    if (use > 0) {
+      result[d] = use;
+      remaining -= use * d;
+    }
+  }
+
+  if (remaining !== 0) return null; // can't make exact change
+  return result;
+}
+
+function totalAtmCash() {
+  return DENOMS.reduce((s, d) => s + d * state.atm.bills[d], 0);
+}
+
+function withdraw() {
+  checkDayReset();
+
+  const input = document.getElementById('amountInput');
+  const amount = parseInt(input.value, 10);
+
+  if (!amount || amount <= 0) {
+    showMessage('error', 'Please enter a valid amount.');
+    return;
+  }
+  if (amount % 10 !== 0) {
+    showMessage('error', `Amount must be a multiple of &euro;10 (smallest bill is &euro;10).`);
+    return;
+  }
+
+  const accRemaining = state.account.dailyLimit - state.account.withdrawnToday;
+  const atmRemaining = state.atm.dailyLimit - state.atm.withdrawnToday;
+  const effectiveLimit = Math.min(accRemaining, atmRemaining);
+
+  if (amount > state.account.balance) {
+    logTransaction(amount, false, 'Insufficient account balance');
+    showMessage('error', `Declined: account balance is &euro;${state.account.balance}.`);
+    return;
+  }
+
+  if (amount > accRemaining) {
+    logTransaction(amount, false, 'Account daily limit reached');
+    showMessage('error',
+      `Declined: account daily limit reached. You can still withdraw &euro;${accRemaining} today from your account.`);
+    return;
+  }
+
+  if (amount > atmRemaining) {
+    logTransaction(amount, false, 'ATM daily limit reached');
+    showMessage('error',
+      `Declined: this ATM's daily limit reached. You can still withdraw &euro;${atmRemaining} from this ATM today.`);
+    return;
+  }
+
+  if (amount > totalAtmCash()) {
+    logTransaction(amount, false, 'ATM out of cash');
+    showMessage('error', `Declined: this ATM does not have enough cash (total &euro;${totalAtmCash()} remaining).`);
+    return;
+  }
+
+  const dispensed = dispenseBills(amount, state.atm.bills);
+  if (!dispensed) {
+    logTransaction(amount, false, 'Cannot make exact change');
+    showMessage('error', `Declined: ATM cannot make exact change for &euro;${amount} with available bills.`);
+    return;
+  }
+
+  // Commit
+  for (const d of DENOMS) {
+    if (dispensed[d]) state.atm.bills[d] -= dispensed[d];
+  }
+  state.account.balance -= amount;
+  state.account.withdrawnToday += amount;
+  state.atm.withdrawnToday += amount;
+
+  logTransaction(amount, true, dispensed);
+  input.value = '';
+
+  const billsHtml = DENOMS
+    .filter(d => dispensed[d])
+    .map(d => `<span>&euro;${d} &times;${dispensed[d]}</span>`)
+    .join(' ');
+
+  showMessage('success', `Dispensing &euro;${amount}:<div class="dispensed-bills">${billsHtml}</div>`);
+  render();
+}
+
+function logTransaction(amount, ok, detail) {
+  const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  state.transactions.unshift({ amount, ok, detail, time });
+}
+
+function showMessage(type, html) {
+  const box = document.getElementById('messageBox');
+  box.className = `message-box ${type}`;
+  box.innerHTML = html;
+}
+
+function render() {
+  const acc = state.account;
+  const atm = state.atm;
+
+  const accRemaining = Math.max(0, acc.dailyLimit - acc.withdrawnToday);
+  const atmRemaining = Math.max(0, atm.dailyLimit - atm.withdrawnToday);
+
+  setText('dispBalance', `€${acc.balance}`);
+  setText('dispAccLimit', `€${acc.dailyLimit}`);
+  setValText('dispAccWithdrawn', acc.withdrawnToday, acc.dailyLimit);
+  setValText('dispAccRemaining', accRemaining, acc.dailyLimit);
+
+  setText('dispAtmLimit', `€${atm.dailyLimit}`);
+  setValText('dispAtmWithdrawn', atm.withdrawnToday, atm.dailyLimit);
+  setValText('dispAtmRemaining', atmRemaining, atm.dailyLimit);
+
+  for (const d of DENOMS) {
+    const el = document.getElementById(`count${d}`);
+    const n = atm.bills[d];
+    el.textContent = `×${n}`;
+    el.className = `bill-count${n === 0 ? ' empty' : ''}`;
+  }
+
+  renderHistory();
+
+  // Sync admin inputs
+  document.getElementById('cfgAtmLimit').value = atm.dailyLimit;
+  document.getElementById('cfgAccLimit').value = acc.dailyLimit;
+  document.getElementById('cfgBalance').value = acc.balance;
+  document.getElementById('refill100').value = atm.bills[100];
+  document.getElementById('refill50').value = atm.bills[50];
+  document.getElementById('refill20').value = atm.bills[20];
+  document.getElementById('refill10').value = atm.bills[10];
+}
+
+function setText(id, val) {
+  document.getElementById(id).textContent = val;
+}
+
+function setValText(id, val, limit) {
+  const el = document.getElementById(id);
+  el.textContent = `€${val}`;
+  const pct = limit > 0 ? val / limit : 0;
+  el.className = 'screen-value' + (pct >= 1 ? ' danger' : pct >= 0.7 ? ' warn' : '');
+}
+
+function renderHistory() {
+  const el = document.getElementById('history');
+  if (state.transactions.length === 0) {
+    el.innerHTML = '<div class="history-item" style="color:#4a5568;font-style:italic;justify-content:center">No transactions yet</div>';
+    return;
+  }
+  el.innerHTML = state.transactions.map(tx => {
+    if (tx.ok) {
+      return `<div class="history-item">
+        <span class="hi-amount">-€${tx.amount}</span>
+        <span style="color:#4a5568">dispensed</span>
+        <span class="hi-time">${tx.time}</span>
+      </div>`;
+    } else {
+      return `<div class="history-item">
+        <span class="hi-fail">€${tx.amount} denied</span>
+        <span style="color:#4a5568;font-size:0.75rem">${tx.detail}</span>
+        <span class="hi-time">${tx.time}</span>
+      </div>`;
+    }
+  }).join('');
+}
+
+function toggleDebug() {
+  const panel = document.getElementById('debugPanel');
+  const btn = document.getElementById('btnDebug');
+  panel.classList.toggle('open');
+  btn.classList.toggle('active', panel.classList.contains('open'));
+}
+
+function toggleAdmin() {
+  const panel = document.getElementById('adminPanel');
+  const btn = document.getElementById('btnAdmin');
+  panel.classList.toggle('open');
+  btn.classList.toggle('active', panel.classList.contains('open'));
+}
+
+function applyAdmin() {
+  state.atm.bills[100] = Math.max(0, parseInt(document.getElementById('refill100').value) || 0);
+  state.atm.bills[50]  = Math.max(0, parseInt(document.getElementById('refill50').value)  || 0);
+  state.atm.bills[20]  = Math.max(0, parseInt(document.getElementById('refill20').value)  || 0);
+  state.atm.bills[10]  = Math.max(0, parseInt(document.getElementById('refill10').value)  || 0);
+  state.atm.dailyLimit   = Math.max(0, parseInt(document.getElementById('cfgAtmLimit').value) || 0);
+  state.account.dailyLimit = Math.max(0, parseInt(document.getElementById('cfgAccLimit').value) || 0);
+  state.account.balance    = Math.max(0, parseInt(document.getElementById('cfgBalance').value)  || 0);
+  document.getElementById('messageBox').className = 'message-box';
+  render();
+}
+
+// Allow Enter key in amount field
+document.getElementById('amountInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') withdraw();
+});
+
+render();
+</script>
+</body>
+</html>
