@@ -69,7 +69,7 @@ Here's what I'd test — organized to expose the ambiguities hiding in that one 
 
 **The currency:**
 
-- Requirement says `$`, app shows `€` — is that a bug or intentional?
+- What if money is withdrawn in another currency (e.g., USD) — is the limit still $300 or is there a conversion?
 
 ---
 
