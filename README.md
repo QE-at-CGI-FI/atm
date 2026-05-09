@@ -67,16 +67,16 @@ A withdrawal is approved only when `requested amount ≤ available` **and** the 
 
 Each of the following is a branching point — a different answer gives a different system, and each branch needs its own tests:
 
-| Dimension | Options |
-|---|---|
-| Scope of "daily" | Calendar day (midnight) · Rolling 24-hour window |
-| Clock authority | ATM local time · Bank server time · Customer home-branch timezone |
-| Limit scope | Per card · Per account · Per cardholder |
-| ATM limit | This machine only · Shared across all ATMs |
-| Joint/multi-card accounts | Shared pool · Independent limits per card |
-| Failed transaction | Counts toward daily total · Does not count |
-| Reversed transaction | Subtracted from daily total · Not subtracted |
-| Exact change impossible | Decline · Offer nearest lower dispensable amount |
+| Dimension                 | Options                                                           |
+| ------------------------- | ----------------------------------------------------------------- |
+| Scope of "daily"          | Calendar day (midnight) · Rolling 24-hour window                  |
+| Clock authority           | ATM local time · Bank server time · Customer home-branch timezone |
+| Limit scope               | Per card · Per account · Per cardholder                           |
+| ATM limit                 | This machine only · Shared across all ATMs                        |
+| Joint/multi-card accounts | Shared pool · Independent limits per card                         |
+| Failed transaction        | Counts toward daily total · Does not count                        |
+| Reversed transaction      | Subtracted from daily total · Not subtracted                      |
+| Exact change impossible   | Decline · Dispense only when request fits limits                  |
 
 ---
 
@@ -91,21 +91,25 @@ Tests split into two categories: **behavior tests** confirm what should happen g
 These have a knowable expected outcome.
 
 **The 300€ boundary**
+
 - Withdraw exactly €300 — succeeds
 - Withdraw €301 — declined
 - Withdraw €299 — succeeds
 - Withdraw €300 in one transaction vs. €150 + €150 — same result
 
 **Cumulative tracking across transactions**
+
 - €100 + €100 + €100 — all three succeed (total €300)
 - €100 + €100 + €100 + €10 — fourth declined (would exceed €300)
 - €200 + €200 — second declined outright, not partially dispensed
 
 **Declined attempts do not consume the limit**
+
 - Withdraw €250, then attempt €300 — declined; can still withdraw €50
 - Attempt €400 from the start — declined; full €300 still available
 
 **Edge inputs**
+
 - Withdraw €0 — error, not processed
 - Withdraw a negative amount — rejected
 - Withdraw €300.50 (non-integer) — rejected; smallest unit is €10
@@ -113,11 +117,13 @@ These have a knowable expected outcome.
 - Withdraw a very large amount (e.g., €999999) — declined
 
 **Denomination and change interactions**
+
 - ATM has only €50 bills — €300 dispensed as six €50s
 - ATM has only €20 bills — €300 cannot be made exactly; declined (€290 or €300?)
 - ATM has 25 × €10 bills (€250 total) — request for €300 declined; not partial
 
 **Feedback after transactions**
+
 - After a successful €300 withdrawal, balance display reflects the deduction
 - Declined transaction: error message states how much remains today, not just “declined”
 - Declined transaction: message says “limit reached”, not “insufficient funds”
@@ -129,12 +135,14 @@ These have a knowable expected outcome.
 These reveal ambiguity. The requirement is silent; the test result defines the answer.
 
 **What does “daily” mean?**
+
 - Withdraw €300 at 23:59, then €10 at 00:00 midnight — does the second succeed?
 - Is “day” a calendar day (midnight reset) or a rolling 24-hour window from first transaction?
 - Whose clock determines the day: the ATM’s local time, the bank server’s time, or the customer’s home branch time zone?
 - What happens to the counter during a daylight saving time transition (a 23-hour or 25-hour day)?
 
 **Which ATM does the limit apply to?**
+
 - Withdraw €200 at ATM A, then €200 at ATM B same day — total €400 allowed or blocked?
 - Withdraw €300 at ATM A — can the same card withdraw €300 at ATM B the same day?
 - ATM is offline — how does it know the day’s running total?
@@ -142,6 +150,7 @@ These reveal ambiguity. The requirement is silent; the test result defines the a
 - System restart mid-day — does the counter survive?
 
 **Whose limit is it?**
+
 - Is the €300 limit per card, per account, or per customer?
 - Joint account: do both cardholders share one €300, or does each have their own?
 - Two cards linked to the same account — can each card withdraw €300?
@@ -150,21 +159,25 @@ These reveal ambiguity. The requirement is silent; the test result defines the a
 - Account limit (€200) is lower than ATM limit (€300) — is the effective ceiling €200?
 
 **What counts toward the total?**
+
 - A transaction is approved but cash is not dispensed (machine jams) — does it count?
 - Network disconnects after approval but before dispensing — does it count?
 - A reversed or refunded transaction — is it subtracted from the day’s total?
 - A declined transaction — does it touch the counter at all?
 
 **Currency and denomination edge cases**
+
 - ATM dispenses only €20 bills — is €290 accepted when €300 cannot be made exactly?
 - Withdrawal at a foreign ATM in a different currency — is the €300 limit applied before or after conversion? At which exchange rate?
 
 **Limit changes and overrides**
+
 - Bank changes the limit from €300 to €500 mid-day — does the new limit apply immediately?
 - Fraud hold placed on the account mid-day — does it interact with the daily counter?
 - Is the limit configurable per account, or fixed for everyone?
 
 **Security and abuse**
+
 - Rapid repeated attempts just below the limit — are they tracked or flagged?
 - Two ATMs used simultaneously by the same card (race condition) — can the limit be exceeded?
 - Client-side time manipulation — does moving the clock forward trigger a reset?
