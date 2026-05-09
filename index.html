@@ -498,34 +498,32 @@ function withdraw() {
 
   if (amount > state.account.balance) {
     logTransaction(amount, false, 'Insufficient account balance');
-    showMessage('error', `Declined: account balance is &euro;${state.account.balance}.`);
+    showMessage('error', 'Withdrawal denied.');
     return;
   }
 
   if (amount > accRemaining) {
     logTransaction(amount, false, 'Account daily limit reached');
-    showMessage('error',
-      `Declined: account daily limit reached. You can still withdraw &euro;${accRemaining} today from your account.`);
+    showMessage('error', 'Withdrawal denied.');
     return;
   }
 
   if (amount > atmRemaining) {
     logTransaction(amount, false, 'ATM daily limit reached');
-    showMessage('error',
-      `Declined: this ATM's daily limit reached. You can still withdraw &euro;${atmRemaining} from this ATM today.`);
+    showMessage('error', 'Withdrawal denied.');
     return;
   }
 
   if (amount > totalAtmCash()) {
     logTransaction(amount, false, 'ATM out of cash');
-    showMessage('error', `Declined: this ATM does not have enough cash (total &euro;${totalAtmCash()} remaining).`);
+    showMessage('error', 'Withdrawal denied.');
     return;
   }
 
   const dispensed = dispenseBills(amount, state.atm.bills);
   if (!dispensed) {
     logTransaction(amount, false, 'Cannot make exact change');
-    showMessage('error', `Declined: ATM cannot make exact change for &euro;${amount} with available bills.`);
+    showMessage('error', 'Withdrawal denied.');
     return;
   }
 
