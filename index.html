@@ -426,12 +426,12 @@ const state = {
     bills: { 100: 5, 50: 8, 20: 15, 10: 20 }
   },
   clockOffset: 0,
-  resetDate: todayStr(),
+  resetDate: new Date().toDateString(),
   transactions: []
 };
 
 function now() {
-  return new Date(Date.now() + state.clockOffset);
+  return new Date(Date.now() + (typeof state !== 'undefined' ? state.clockOffset : 0));
 }
 
 function todayStr() {
