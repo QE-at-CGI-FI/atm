@@ -499,28 +499,28 @@ function withdraw() {
   if (amount > state.account.balance) {
     logTransaction(amount, false, 'Insufficient account balance');
     showMessage('error', 'Withdrawal denied.');
-    render();
+    renderHistory();
     return;
   }
 
   if (amount > accRemaining) {
     logTransaction(amount, false, 'Account daily limit reached');
     showMessage('error', 'Withdrawal denied.');
-    render();
+    renderHistory();
     return;
   }
 
   if (amount > atmRemaining) {
     logTransaction(amount, false, 'ATM daily limit reached');
     showMessage('error', 'Withdrawal denied.');
-    render();
+    renderHistory();
     return;
   }
 
   if (amount > totalAtmCash()) {
     logTransaction(amount, false, 'ATM out of cash');
     showMessage('error', 'Withdrawal denied.');
-    render();
+    renderHistory();
     return;
   }
 
@@ -528,7 +528,7 @@ function withdraw() {
   if (!dispensed) {
     logTransaction(amount, false, 'Cannot make exact change');
     showMessage('error', 'Withdrawal denied.');
-    render();
+    renderHistory();
     return;
   }
 
