@@ -247,6 +247,20 @@
       color-scheme: dark;
     }
     .clock-simulated { color: #f7b731 !important; }
+    .screen-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #1b4965;
+      color: #4ecca3;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      text-align: right;
+      width: 80px;
+      outline: none;
+      padding: 2px 4px;
+    }
+    .screen-input:focus { border-bottom-color: #4ecca3; }
   </style>
 </head>
 <body>
@@ -333,7 +347,11 @@
         <span class="screen-value" id="dispAccLimit">&euro;500</span>
       </div>
       <div class="screen-row">
-        <span class="screen-label">Account withdrawn today</span>
+        <span class="screen-label">Withdrawn at other ATMs</span>
+        <input class="screen-input" type="number" id="inputElsewhere" min="0" step="10" value="0" oninput="setElsewhere(this.value)">
+      </div>
+      <div class="screen-row">
+        <span class="screen-label">Withdrawn at this ATM</span>
         <span class="screen-value" id="dispAccWithdrawn">&euro;0</span>
       </div>
       <div class="screen-row">
@@ -399,7 +417,8 @@ const state = {
   account: {
     balance: 2000,
     dailyLimit: 500,
-    withdrawnToday: 0
+    withdrawnToday: 0,
+    withdrawnElsewhere: 0
   },
   atm: {
     dailyLimit: 300,
@@ -423,8 +442,16 @@ function checkDayReset() {
   if (state.resetDate !== todayStr()) {
     state.resetDate = todayStr();
     state.account.withdrawnToday = 0;
+    state.account.withdrawnElsewhere = 0;
     state.atm.withdrawnToday = 0;
+    const el = document.getElementById('inputElsewhere');
+    if (el) el.value = 0;
   }
+}
+
+function setElsewhere(val) {
+  state.account.withdrawnElsewhere = Math.max(0, parseInt(val) || 0);
+  render();
 }
 
 // Greedy bill dispensing: largest first, respecting available counts
@@ -465,7 +492,7 @@ function withdraw() {
     return;
   }
 
-  const accRemaining = state.account.dailyLimit - state.account.withdrawnToday;
+  const accRemaining = state.account.dailyLimit - state.account.withdrawnToday - state.account.withdrawnElsewhere;
   const atmRemaining = state.atm.dailyLimit - state.atm.withdrawnToday;
   const effectiveLimit = Math.min(accRemaining, atmRemaining);
 
@@ -537,12 +564,13 @@ function render() {
   const acc = state.account;
   const atm = state.atm;
 
-  const accRemaining = Math.max(0, acc.dailyLimit - acc.withdrawnToday);
+  const accRemaining = Math.max(0, acc.dailyLimit - acc.withdrawnToday - acc.withdrawnElsewhere);
   const atmRemaining = Math.max(0, atm.dailyLimit - atm.withdrawnToday);
 
   setText('dispBalance', `€${acc.balance}`);
   setText('dispAccLimit', `€${acc.dailyLimit}`);
-  setValText('dispAccWithdrawn', acc.withdrawnToday, acc.dailyLimit);
+  document.getElementById('inputElsewhere').value = acc.withdrawnElsewhere;
+  setValText('dispAccWithdrawn', acc.withdrawnToday, acc.dailyLimit - acc.withdrawnElsewhere);
   setValText('dispAccRemaining', accRemaining, acc.dailyLimit);
 
   setText('dispAtmLimit', `€${atm.dailyLimit}`);
