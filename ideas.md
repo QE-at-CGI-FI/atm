@@ -1,0 +1,3 @@
+- Fix leading zeroes in asking for money
+- Add support for multiple currencies
+- Add support for credit / debit on withdrawing money
