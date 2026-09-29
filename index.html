@@ -457,7 +457,8 @@ function checkDayReset() {
 }
 
 function setElsewhere(val) {
-  state.account.withdrawnElsewhere = Math.max(0, parseInt(val) || 0);
+  const parsed = Math.max(0, parseInt(val) || 0);
+  state.account.withdrawnElsewhere = Math.min(parsed, state.account.dailyLimit);
   render();
 }
 
@@ -579,7 +580,9 @@ function render() {
 
   setText('dispBalance', `€${acc.balance}`);
   setText('dispAccLimit', `€${acc.dailyLimit}`);
-  document.getElementById('inputElsewhere').value = acc.withdrawnElsewhere;
+  const elsewhereInput = document.getElementById('inputElsewhere');
+  elsewhereInput.max = acc.dailyLimit;
+  elsewhereInput.value = acc.withdrawnElsewhere;
   setValText('dispAccWithdrawn', acc.withdrawnToday, acc.dailyLimit - acc.withdrawnElsewhere);
   setValText('dispAccRemaining', accRemaining, acc.dailyLimit);
 
@@ -698,6 +701,7 @@ function applyAdmin() {
   state.atm.dailyLimit   = Math.max(0, parseInt(document.getElementById('cfgAtmLimit').value) || 0);
   state.account.dailyLimit = Math.max(0, parseInt(document.getElementById('cfgAccLimit').value) || 0);
   state.account.balance    = Math.max(0, parseInt(document.getElementById('cfgBalance').value)  || 0);
+  state.account.withdrawnElsewhere = Math.min(state.account.withdrawnElsewhere, state.account.dailyLimit);
   document.getElementById('messageBox').className = 'message-box';
   render();
 }
