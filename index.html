@@ -463,23 +463,70 @@ function setElsewhere(val) {
   render();
 }
 
-// Greedy bill dispensing: largest first, respecting available counts
-function dispenseBills(amount, bills) {
+// Greedy bill dispensing: largest first, respecting available counts.
+// Fast and dispenses the fewest bills, but can strand a remainder it can't
+// cover even when a valid combination exists using more/smaller bills.
+function greedyDispense(amount, bills) {
   const result = {};
   let remaining = amount;
-  const draft = { ...bills };
 
   for (const d of DENOMS) {
     if (remaining <= 0) break;
-    const use = Math.min(Math.floor(remaining / d), draft[d]);
+    const use = Math.min(Math.floor(remaining / d), bills[d]);
     if (use > 0) {
       result[d] = use;
       remaining -= use * d;
     }
   }
 
-  if (remaining !== 0) return null; // can't make exact change
+  if (remaining !== 0) return null; // can't make exact change this way
   return result;
+}
+
+// Exact bill dispensing: searches all combinations (bounded knapsack DP) so any
+// achievable combination is found, not just the one greedy-largest-first picks.
+function exactDispense(amount, bills) {
+  const unit = 10; // amounts and denominations are always multiples of €10
+  const target = amount / unit;
+  const denomUnits = DENOMS.map(d => d / unit);
+  const n = DENOMS.length;
+
+  // dp[i][r]: true if r (in units) is reachable using the first i denominations
+  const dp = Array.from({ length: n + 1 }, () => new Array(target + 1).fill(false));
+  const used = Array.from({ length: n + 1 }, () => new Array(target + 1).fill(0));
+  dp[0][0] = true;
+
+  for (let i = 0; i < n; i++) {
+    const du = denomUnits[i];
+    const maxCount = bills[DENOMS[i]];
+    for (let r = 0; r <= target; r++) {
+      if (!dp[i][r]) continue;
+      const maxUse = Math.min(maxCount, Math.floor((target - r) / du));
+      for (let use = 0; use <= maxUse; use++) {
+        const next = r + use * du;
+        if (!dp[i + 1][next]) {
+          dp[i + 1][next] = true;
+          used[i + 1][next] = use;
+        }
+      }
+    }
+  }
+
+  if (!dp[n][target]) return null; // no combination can make exact change
+
+  const result = {};
+  let r = target;
+  for (let i = n; i >= 1; i--) {
+    const use = used[i][r];
+    if (use > 0) result[DENOMS[i - 1]] = use;
+    r -= use * denomUnits[i - 1];
+  }
+  return result;
+}
+
+function dispenseBills(amount, bills) {
+  if (amount === 0) return {};
+  return greedyDispense(amount, bills) || exactDispense(amount, bills);
 }
 
 function totalAtmCash() {
@@ -490,10 +537,14 @@ function withdraw() {
   checkDayReset();
 
   const input = document.getElementById('amountInput');
-  const amount = parseInt(input.value, 10);
+  const amount = Number(input.value);
 
-  if (!amount || amount <= 0) {
+  if (input.value.trim() === '' || !Number.isFinite(amount) || amount <= 0) {
     showMessage('error', 'Please enter a valid amount.');
+    return;
+  }
+  if (!Number.isInteger(amount)) {
+    showMessage('error', 'Amount must be a whole number (no cents).');
     return;
   }
   if (amount % 10 !== 0) {
