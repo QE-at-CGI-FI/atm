@@ -537,13 +537,17 @@ function withdraw() {
   checkDayReset();
 
   const input = document.getElementById('amountInput');
-  const amount = Number(input.value);
+  const rawValue = input.value;
+  const amount = Number(rawValue);
 
-  if (input.value.trim() === '' || !Number.isFinite(amount) || amount <= 0) {
+  if (rawValue.trim() === '' || !Number.isFinite(amount) || amount <= 0) {
     showMessage('error', 'Please enter a valid amount.');
     return;
   }
-  if (!Number.isInteger(amount)) {
+  // Reject on the raw string, not just the parsed number: Number("300.") and
+  // Number("300.0") both evaluate to the integer 300, so checking only
+  // Number.isInteger(amount) lets fractional-looking input slip through.
+  if (/[.,]/.test(rawValue) || !Number.isInteger(amount)) {
     showMessage('error', 'Amount must be a whole number (no cents).');
     return;
   }
