@@ -46,3 +46,21 @@ assumption.
 
 No open questions — the arithmetic is fully traced and the asymmetry
 confirmed safe.
+
+## Update (2026-09-30)
+
+A separate test harness (bombadil) encoded a stricter invariant —
+`withdrawn ≤ limit` must hold at every instant, not just at the gating
+check — and flagged this exact scenario (admin drops `dailyLimit` to €0
+after €100 was already withdrawn: `withdrawnToday = 100 > dailyLimit = 0`).
+The "benign" conclusion above only considered the *gating* behavior
+(future withdrawals correctly blocked); it didn't consider that
+`withdrawnToday` itself transiently exceeding `dailyLimit` is itself an
+invariant violation from an external observer's point of view.
+
+Fixed in `applyAdmin()` (index.html:757-758): `dailyLimit` is now clamped
+to never drop below the current `withdrawnToday` for both ATM and
+account, so an admin can lower a limit but never below what's already
+been legitimately withdrawn today. `withdrawnToday` is left untouched by
+design — it represents money already dispensed and must never be
+retroactively edited.
