@@ -214,6 +214,9 @@
       display: none;
     }
     .debug-panel.open { display: block; }
+    .debug-panel.open, .debug-panel.open * {
+      outline: 2px solid orange;
+    }
 
     .admin-panel {
       background: #0d1b2a;
@@ -225,6 +228,9 @@
     }
     .admin-panel.open { display: block; }
     .admin-panel .section-title { color: #f7b731; }
+    .admin-panel.open, .admin-panel.open * {
+      outline: 2px solid hotpink;
+    }
 
     .config-box {
       background: #0d1b2a;
@@ -288,6 +294,22 @@
     <button id="btnAdmin" onclick="toggleAdmin()">ADMIN</button>
   </div>
 
+  <!-- Always-visible: account balance -->
+  <div class="screen">
+    <div class="section-title">Account</div>
+    <div class="screen-row">
+      <span class="screen-label">Balance</span>
+      <span class="screen-value" id="dispBalance">&euro;2000</span>
+    </div>
+  </div>
+
+  <div class="input-row">
+    <input type="number" id="amountInput" placeholder="Enter amount" min="10" step="10">
+    <button onclick="withdraw()">WITHDRAW</button>
+  </div>
+
+  <div class="message-box" id="messageBox"></div>
+
   <div class="admin-panel" id="adminPanel">
     <div class="section-title">Admin — Refill</div>
     <div class="admin-row">
@@ -307,15 +329,6 @@
       <input type="number" id="refill10" min="0" value="20">
     </div>
     <button onclick="applyAdmin()" style="width:100%">APPLY</button>
-  </div>
-
-  <!-- Always-visible: account balance -->
-  <div class="screen">
-    <div class="section-title">Account</div>
-    <div class="screen-row">
-      <span class="screen-label">Balance</span>
-      <span class="screen-value" id="dispBalance">&euro;2000</span>
-    </div>
   </div>
 
   <!-- Debug panel: limits, daily tracking, ATM cash -->
@@ -422,13 +435,6 @@
       <div class="history-item" style="color:#4a5568; font-style:italic; justify-content:center">No transactions yet</div>
     </div>
   </div>
-
-  <div class="input-row">
-    <input type="number" id="amountInput" placeholder="Enter amount" min="10" step="10">
-    <button onclick="withdraw()">WITHDRAW</button>
-  </div>
-
-  <div class="message-box" id="messageBox"></div>
 </div>
 
 <script>
